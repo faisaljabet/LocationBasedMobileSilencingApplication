@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "693333199420",
+    "project_id": "mobilesilencer-501c5",
+    "storage_bucket": "mobilesilencer-501c5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:693333199420:android:35e35f2a047714421c9139",
+        "android_client_info": {
+          "package_name": "com.example.mobilesilencer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "693333199420-i3kdhns0vlidg1199t9ah65hn88dr0m6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1bcugk1zVq_EMMrv4cz89xequ2dguAg8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "693333199420-i3kdhns0vlidg1199t9ah65hn88dr0m6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -8,7 +8,6 @@ import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -18,7 +17,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.AlarmClock;
 import android.provider.Settings;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -32,10 +30,7 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.karumi.dexter.Dexter;
@@ -47,20 +42,20 @@ import com.karumi.dexter.listener.single.PermissionListener;
 
 import java.util.HashMap;
 
-public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class AddMosque extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     boolean isPermissionGranted;
     GoogleMap mGoogleMap;
-    FloatingActionButton addNewMosque;
+    FloatingActionButton fab;
     private FusedLocationProviderClient mLocationClient;
     private int GPS_REQUEST_CODE = 9001;
 
-    private double currentLatitude;
-    private double currentLongitude;
+    private String currentLatitude;
+    private String currentLongitude;
 
-    // Read a message from the database
+    // Write a message to the database
     private FirebaseDatabase db = FirebaseDatabase.getInstance();
-    static DatabaseReference mosqueLocation;
+    private DatabaseReference mosqueLocation;
     private int i = 0;
 
     //Audio mode
@@ -71,80 +66,38 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        isGPSenable();
-
-        addNewMosque = findViewById(R.id.addNewMosque);
+        fab = findViewById(R.id.fab);
 
         checkMyPermission();
 
+        initMap();
+
         mLocationClient = new FusedLocationProviderClient(this);
 
+        markCurrLoc();
+
         i++;
-        mosqueLocation = db.getReference();
+        mosqueLocation = db.getReference().child("mosque"+i);
 
-        setAudioMode();
-
-        addNewMosque.setOnClickListener(new View.OnClickListener() {
+        fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view){
-
+                getLocation();
+                HashMap<String, String> mosqueMap = new HashMap<>();
+                mosqueMap.put("Latitude", currentLatitude);
+                mosqueMap.put("Longitude", currentLongitude);
+                mosqueLocation.setValue(mosqueMap);
             }
         });
     }
 
-    private void setAudioMode(){
-        setCurrentLocation();
-        for(int j=1; j<2; j++) {
-            final double[] mosqueLatitude = new double[1];
-            final double[] mosqueLongitude = new double[1];
-            mosqueLocation.child("mosque"+j).child("Latitude").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>()           {
-                @Override
-                public void onComplete(@NonNull Task<DataSnapshot> task) {
-                    if (!task.isSuccessful()) {
-                        Log.e("firebase", "Error getting data", task.getException());
-                    } else {
-                        mosqueLatitude[0] = Double.parseDouble(String.valueOf(task.getResult().getValue()));
-                        //Toast.makeText(MainActivity.this, mosqueLatitude[0]+"", Toast.LENGTH_LONG).show();
-                    }
-                }
-            });
-            mosqueLocation.child("mosque"+j).child("Longitude").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>()           {
-                @Override
-                public void onComplete(@NonNull Task<DataSnapshot> task) {
-                    if (!task.isSuccessful()) {
-                        Log.e("firebase", "Error getting data", task.getException());
-                    } else {
-                        mosqueLongitude[0] = Double.parseDouble(String.valueOf(task.getResult().getValue()));
-                        //Toast.makeText(MainActivity.this, mosqueLongitude[0]+"", Toast.LENGTH_LONG).show();
-                    }
-                }
-            });
-            double diffOfLat = mosqueLatitude[0]-currentLatitude;
-            double diffOfLng = mosqueLongitude[0]-currentLongitude;
-            am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            if( (diffOfLat*diffOfLat) + (diffOfLng*diffOfLng) <= 100 && am.getMode()!=1)
-            {
-                am.setRingerMode(1);
-                Toast.makeText(MainActivity.this, "Silent Mode On", Toast.LENGTH_SHORT).show();
-            }
-            else
-            {
-                am.setRingerMode(2);
-                Toast.makeText(MainActivity.this, "Silent Mode Off", Toast.LENGTH_SHORT).show();
+    private void initMap() {
+        if (isPermissionGranted) {
+            if (isGPSenable()) {
+                SupportMapFragment supportMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.fragment);
+                supportMapFragment.getMapAsync(this);
             }
         }
-    }
-
-    @SuppressLint("MissingPermission")
-    private void setCurrentLocation(){
-        LatLng latLng = null;
-        mLocationClient.getLastLocation().addOnCompleteListener(task -> {
-            if(task.isSuccessful()){
-                Location location = task.getResult();
-                currentLatitude = location.getLatitude();
-                currentLongitude = location.getLongitude();
-            }
-        });
     }
 
     private boolean isGPSenable() {
@@ -168,12 +121,45 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         return false;
     }
 
+
+    @SuppressLint("MissingPermission")
+    private void markCurrLoc() {
+        mLocationClient.getLastLocation().addOnCompleteListener(task -> {
+            if(task.isSuccessful()){
+                Location location = task.getResult();
+                currentLatitude = location.getLatitude() + "";
+                currentLongitude = location.getLongitude() + "";
+                gotoLocation(location.getLatitude(), location.getLongitude());
+            }
+        });
+    }
+
+    private void gotoLocation(double latitude, double longitude) {
+        LatLng LatLng = new LatLng(latitude, longitude);
+
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(LatLng, 18);
+        mGoogleMap.moveCamera(cameraUpdate);
+        mGoogleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+    }
+
+    @SuppressLint("MissingPermission")
+    private void getLocation(){
+        LatLng latLng = null;
+        mLocationClient.getLastLocation().addOnCompleteListener(task -> {
+            if(task.isSuccessful()){
+                Location location = task.getResult();
+                currentLatitude = location.getLatitude() + "";
+                currentLongitude = location.getLongitude() + "";
+            }
+        });
+    }
+
     private void checkMyPermission() {
 
         Dexter.withContext(this).withPermission(Manifest.permission.ACCESS_FINE_LOCATION).withListener(new PermissionListener() {
             @Override
             public void onPermissionGranted(PermissionGrantedResponse permissionGrantedResponse) {
-                Toast.makeText(MainActivity.this, "Location Permission Granted", Toast.LENGTH_SHORT).show();
+                Toast.makeText(AddMosque.this, "Location Permission Granted", Toast.LENGTH_SHORT).show();
                 isPermissionGranted = true;
             }
 
@@ -191,6 +177,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 permissionToken.continuePermissionRequest();
             }
         }).check();
+    }
+
+    @SuppressLint("MissingPermission")
+    @Override
+    public void onMapReady(@NonNull GoogleMap googleMap) {
+        mGoogleMap = googleMap;
+        mGoogleMap.setMyLocationEnabled(true);
+
     }
 
     @Override
