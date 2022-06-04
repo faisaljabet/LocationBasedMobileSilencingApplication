@@ -10,6 +10,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.content.LocusId;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
@@ -20,6 +21,9 @@ import android.provider.AlarmClock;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -36,8 +40,10 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -45,26 +51,23 @@ import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     boolean isPermissionGranted;
     GoogleMap mGoogleMap;
-    FloatingActionButton addNewMosque;
+    private Button addNewMosque;
     private FusedLocationProviderClient mLocationClient;
     private int GPS_REQUEST_CODE = 9001;
 
     private double currentLatitude;
     private double currentLongitude;
 
-    // Read a message from the database
-    private FirebaseDatabase db = FirebaseDatabase.getInstance();
-    static DatabaseReference mosqueLocation;
-    private int i = 0;
-
     //Audio mode
     AudioManager am;
+    boolean insideMosque = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,66 +76,58 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         isGPSenable();
 
-        addNewMosque = findViewById(R.id.addNewMosque);
-
         checkMyPermission();
 
         mLocationClient = new FusedLocationProviderClient(this);
 
-        i++;
-        mosqueLocation = db.getReference();
-
         setAudioMode();
+
+        addNewMosque = findViewById(R.id.addNewMosque);
 
         addNewMosque.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view){
-
+                startActivity(new Intent(MainActivity.this, AddMosque.class));
             }
         });
     }
 
     private void setAudioMode(){
         setCurrentLocation();
-        for(int j=1; j<2; j++) {
-            final double[] mosqueLatitude = new double[1];
-            final double[] mosqueLongitude = new double[1];
-            mosqueLocation.child("mosque"+j).child("Latitude").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>()           {
-                @Override
-                public void onComplete(@NonNull Task<DataSnapshot> task) {
-                    if (!task.isSuccessful()) {
-                        Log.e("firebase", "Error getting data", task.getException());
-                    } else {
-                        mosqueLatitude[0] = Double.parseDouble(String.valueOf(task.getResult().getValue()));
-                        //Toast.makeText(MainActivity.this, mosqueLatitude[0]+"", Toast.LENGTH_LONG).show();
+
+        // Read a message from the database
+
+        DatabaseReference mosqueLocation = FirebaseDatabase.getInstance().getReference().child("MosqueLocation");
+
+        mosqueLocation.addValueEventListener(new ValueEventListener(){
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for(DataSnapshot snapshot : dataSnapshot.getChildren()){
+                    MosqueLocation mosqueLocation = snapshot.getValue(MosqueLocation.class);
+                    double mosqueLatitude = Double.parseDouble(mosqueLocation.getLatitude());
+                    double mosqueLongitude = Double.parseDouble(mosqueLocation.getLongitude());
+
+                    double diffOfLat = mosqueLatitude-currentLatitude;
+                    double diffOfLng = mosqueLongitude-currentLongitude;
+                    am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                    int previousRingerMode = am.getRingerMode();
+                    if(previousRingerMode != 1){
+                        previousRingerMode = 2;
+                    }
+                    if( (diffOfLat*diffOfLat) + (diffOfLng*diffOfLng) <= 100)
+                    {
+                        am.setRingerMode(1);
+                        insideMosque = true;
+                        break;
                     }
                 }
-            });
-            mosqueLocation.child("mosque"+j).child("Longitude").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>()           {
-                @Override
-                public void onComplete(@NonNull Task<DataSnapshot> task) {
-                    if (!task.isSuccessful()) {
-                        Log.e("firebase", "Error getting data", task.getException());
-                    } else {
-                        mosqueLongitude[0] = Double.parseDouble(String.valueOf(task.getResult().getValue()));
-                        //Toast.makeText(MainActivity.this, mosqueLongitude[0]+"", Toast.LENGTH_LONG).show();
-                    }
-                }
-            });
-            double diffOfLat = mosqueLatitude[0]-currentLatitude;
-            double diffOfLng = mosqueLongitude[0]-currentLongitude;
-            am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            if( (diffOfLat*diffOfLat) + (diffOfLng*diffOfLng) <= 100 && am.getMode()!=1)
-            {
-                am.setRingerMode(1);
-                Toast.makeText(MainActivity.this, "Silent Mode On", Toast.LENGTH_SHORT).show();
             }
-            else
-            {
-                am.setRingerMode(2);
-                Toast.makeText(MainActivity.this, "Silent Mode Off", Toast.LENGTH_SHORT).show();
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
             }
-        }
+        });
     }
 
     @SuppressLint("MissingPermission")
@@ -173,7 +168,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         Dexter.withContext(this).withPermission(Manifest.permission.ACCESS_FINE_LOCATION).withListener(new PermissionListener() {
             @Override
             public void onPermissionGranted(PermissionGrantedResponse permissionGrantedResponse) {
-                Toast.makeText(MainActivity.this, "Location Permission Granted", Toast.LENGTH_SHORT).show();
                 isPermissionGranted = true;
             }
 

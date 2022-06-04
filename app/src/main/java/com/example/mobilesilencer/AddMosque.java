@@ -56,37 +56,33 @@ public class AddMosque extends AppCompatActivity implements OnMapReadyCallback, 
     // Write a message to the database
     private FirebaseDatabase db = FirebaseDatabase.getInstance();
     private DatabaseReference mosqueLocation;
-    private int i = 0;
-
-    //Audio mode
-    AudioManager am;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_add_mosque);
 
         fab = findViewById(R.id.fab);
+
 
         checkMyPermission();
 
         initMap();
+        Toast.makeText(this, "im in" + isPermissionGranted, Toast.LENGTH_SHORT).show();
 
         mLocationClient = new FusedLocationProviderClient(this);
-
         markCurrLoc();
 
-        i++;
-        mosqueLocation = db.getReference().child("mosque"+i);
+        mosqueLocation = db.getReference().child("MosqueLocation");
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view){
                 getLocation();
                 HashMap<String, String> mosqueMap = new HashMap<>();
-                mosqueMap.put("Latitude", currentLatitude);
-                mosqueMap.put("Longitude", currentLongitude);
-                mosqueLocation.setValue(mosqueMap);
+                mosqueMap.put("latitude", currentLatitude);
+                mosqueMap.put("longitude", currentLongitude);
+                mosqueLocation.push().setValue(mosqueMap);
             }
         });
     }
@@ -144,7 +140,6 @@ public class AddMosque extends AppCompatActivity implements OnMapReadyCallback, 
 
     @SuppressLint("MissingPermission")
     private void getLocation(){
-        LatLng latLng = null;
         mLocationClient.getLastLocation().addOnCompleteListener(task -> {
             if(task.isSuccessful()){
                 Location location = task.getResult();
@@ -159,7 +154,6 @@ public class AddMosque extends AppCompatActivity implements OnMapReadyCallback, 
         Dexter.withContext(this).withPermission(Manifest.permission.ACCESS_FINE_LOCATION).withListener(new PermissionListener() {
             @Override
             public void onPermissionGranted(PermissionGrantedResponse permissionGrantedResponse) {
-                Toast.makeText(AddMosque.this, "Location Permission Granted", Toast.LENGTH_SHORT).show();
                 isPermissionGranted = true;
             }
 
