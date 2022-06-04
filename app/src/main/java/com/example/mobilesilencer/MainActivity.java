@@ -64,10 +64,15 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     private double currentLatitude;
     private double currentLongitude;
+    private double currMosqueLat = 0;
+    private double currMosqueLng = 0;
 
     //Audio mode
-    AudioManager am;
-    boolean insideMosque = false;
+    private AudioManager am;
+    private boolean insideMosque = false;
+
+    //Run on background
+    private Thread thread = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,15 +80,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         setContentView(R.layout.activity_main);
 
         isGPSenable();
-
         checkMyPermission();
-
         mLocationClient = new FusedLocationProviderClient(this);
-
-        setAudioMode();
-
+        checkAndUpdateAudioMode();
         addNewMosque = findViewById(R.id.addNewMosque);
-
         addNewMosque.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view){
@@ -92,33 +92,91 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         });
     }
 
-    private void setAudioMode(){
+    private void checkAndUpdateAudioMode() {
+        thread = new Thread((new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        updateAudioMode();
+                        Thread.sleep(10000);
+                    } catch(InterruptedException e){
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }));
+        thread.start();
+    }
+
+    private void updateAudioMode(){
         setCurrentLocation();
-
         // Read a message from the database
-
         DatabaseReference mosqueLocation = FirebaseDatabase.getInstance().getReference().child("MosqueLocation");
-
         mosqueLocation.addValueEventListener(new ValueEventListener(){
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for(DataSnapshot snapshot : dataSnapshot.getChildren()){
-                    MosqueLocation mosqueLocation = snapshot.getValue(MosqueLocation.class);
-                    double mosqueLatitude = Double.parseDouble(mosqueLocation.getLatitude());
-                    double mosqueLongitude = Double.parseDouble(mosqueLocation.getLongitude());
-
-                    double diffOfLat = mosqueLatitude-currentLatitude;
-                    double diffOfLng = mosqueLongitude-currentLongitude;
-                    am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-                    int previousRingerMode = am.getRingerMode();
-                    if(previousRingerMode != 1){
-                        previousRingerMode = 2;
+                double radDiffOfLat = 0;
+                double radDiffOfLng = 0;
+                am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                if (insideMosque) {
+                    radDiffOfLat = Math.toRadians(currMosqueLat - currentLatitude);
+                    radDiffOfLng = Math.toRadians(currMosqueLng - currentLongitude);
+                    double radCurrMosqueLat = Math.toRadians(currMosqueLat);
+                    double radCurrentLatitude = Math.toRadians(currentLatitude);
+                    double a = Math.pow(Math.sin(radDiffOfLat / 2), 2)
+                            + Math.cos(radCurrentLatitude) * Math.cos(radCurrMosqueLat)
+                            * Math.pow(Math.sin(radDiffOfLng / 2), 2);
+                    double c = 2 * Math.asin(Math.sqrt(a));
+                    // Radius of earth in meters. Use 3956
+                    // for miles
+                    double r = 6371000;
+//                    Log.d("insideMosque", "");
+//                    Log.d("currentLatitude", "" + currentLatitude);
+//                    Log.d("currMosqueLat", "" + currMosqueLat);
+//                    Log.d("currentLongitude", "" + currentLongitude);
+//                    Log.d("currMosqueLng", "" + currMosqueLng);
+//                    Log.d("Distance", "" + (c * r));
+                    // calculate the result
+                    if (c * r > 10) {
+                        am.setRingerMode(2);
+                        insideMosque = false;
                     }
-                    if( (diffOfLat*diffOfLat) + (diffOfLng*diffOfLng) <= 100)
-                    {
+                    else{
                         am.setRingerMode(1);
-                        insideMosque = true;
-                        break;
+                    }
+                } else {
+                    for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                        MosqueLocation mosqueLocation = snapshot.getValue(MosqueLocation.class);
+                        double mosqueLatitude = Double.parseDouble(mosqueLocation.getLatitude());
+                        double mosqueLongitude = Double.parseDouble(mosqueLocation.getLongitude());
+
+                        radDiffOfLat = Math.toRadians(mosqueLatitude - currentLatitude);
+                        radDiffOfLng = Math.toRadians(mosqueLongitude - currentLongitude);
+                        double radMosqueLatitude = Math.toRadians(mosqueLatitude);
+                        double radCurrentLatitude = Math.toRadians(currentLatitude);
+                        double a = Math.pow(Math.sin(radDiffOfLat / 2), 2)
+                                + Math.cos(radCurrentLatitude) * Math.cos(radMosqueLatitude)
+                                * Math.pow(Math.sin(radDiffOfLng / 2), 2);
+                        double c = 2 * Math.asin(Math.sqrt(a));
+                        // Radius of earth in meters. Use 3956
+                        // for miles
+                        double r = 6371000;
+                        // calculate the result
+                        if (c * r <= 10) {
+                            am.setRingerMode(1);
+                            insideMosque = true;
+                            currMosqueLat = mosqueLatitude;
+                            currMosqueLng = mosqueLongitude;
+//                            Log.d("Not insideMosque", "");
+//                            Log.d("currentLatitude", "" + currentLatitude);
+//                            Log.d("mosqueLatitude", "" + mosqueLatitude);
+//                            Log.d("currentLongitude", "" + currentLongitude);
+//                            Log.d("mosqueLongitude", "" + mosqueLongitude);
+//                            Log.d("Distance", "" + (c * r));
+                            break;
+                        }
+
                     }
                 }
             }

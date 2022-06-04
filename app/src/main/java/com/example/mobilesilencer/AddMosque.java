@@ -42,7 +42,7 @@ import com.karumi.dexter.listener.single.PermissionListener;
 
 import java.util.HashMap;
 
-public class AddMosque extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class AddMosque extends MainActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     boolean isPermissionGranted;
     GoogleMap mGoogleMap;
@@ -63,28 +63,27 @@ public class AddMosque extends AppCompatActivity implements OnMapReadyCallback, 
         setContentView(R.layout.activity_add_mosque);
 
         fab = findViewById(R.id.fab);
-
-
         checkMyPermission();
-
         initMap();
-        Toast.makeText(this, "im in" + isPermissionGranted, Toast.LENGTH_SHORT).show();
-
         mLocationClient = new FusedLocationProviderClient(this);
         markCurrLoc();
-
-        mosqueLocation = db.getReference().child("MosqueLocation");
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view){
-                getLocation();
-                HashMap<String, String> mosqueMap = new HashMap<>();
-                mosqueMap.put("latitude", currentLatitude);
-                mosqueMap.put("longitude", currentLongitude);
-                mosqueLocation.push().setValue(mosqueMap);
+                setCurrLocation();
+                addNewMosque(currentLatitude, currentLongitude);
             }
         });
+    }
+
+    private void addNewMosque(String lat, String lng){
+        mosqueLocation = db.getReference().child("MosqueLocation");
+        HashMap<String, String> mosqueMap = new HashMap<>();
+        mosqueMap.put("latitude", lat);
+        mosqueMap.put("longitude", lng);
+        mosqueLocation.push().setValue(mosqueMap);
+        Toast.makeText(this, "Mosque location added", Toast.LENGTH_SHORT).show();
     }
 
     private void initMap() {
@@ -139,7 +138,7 @@ public class AddMosque extends AppCompatActivity implements OnMapReadyCallback, 
     }
 
     @SuppressLint("MissingPermission")
-    private void getLocation(){
+    private void setCurrLocation(){
         mLocationClient.getLastLocation().addOnCompleteListener(task -> {
             if(task.isSuccessful()){
                 Location location = task.getResult();
