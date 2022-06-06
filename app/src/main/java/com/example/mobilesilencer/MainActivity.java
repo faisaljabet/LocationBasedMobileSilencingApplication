@@ -51,6 +51,13 @@ import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
+//For always running in background
+import android.content.Intent;
+import android.os.PowerManager;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -84,10 +91,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         isGPSenable();
         checkMyPermission();
         mLocationClient = new FusedLocationProviderClient(this);
+        readMosqueLocationsFromFirebase();
         checkAndUpdateAudioMode();
         addNewMosque = findViewById(R.id.addNewMosque);
-
-        readMosqueLocationsFromFirebase();
         addNewMosque.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view){
@@ -111,6 +117,18 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             }
         }));
         thread.start();
+
+        //For always running in background
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Intent intent = new Intent();
+            String packageName = getPackageName();
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + packageName));
+                startActivity(intent);
+            }
+        }
     }
 
     private void readMosqueLocationsFromFirebase()
@@ -155,12 +173,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             // Radius of earth in meters. Use 3956
             // for miles
             double r = 6371000;
-//                    Log.d("insideMosque", "");
-//                    Log.d("currentLatitude", "" + currentLatitude);
-//                    Log.d("currMosqueLat", "" + currMosqueLat);
-//                    Log.d("currentLongitude", "" + currentLongitude);
-//                    Log.d("currMosqueLng", "" + currMosqueLng);
-//                    Log.d("Distance", "" + (c * r));
+                    Log.d("insideMosque", "");
+                    Log.d("currentLatitude", "" + currentLatitude);
+                    Log.d("currMosqueLat", "" + currMosqueLat);
+                    Log.d("currentLongitude", "" + currentLongitude);
+                    Log.d("currMosqueLng", "" + currMosqueLng);
+                    Log.d("Distance", "" + (c * r));
             // calculate the result
             if (c * r > 10) {
                 am.setRingerMode(2);
@@ -172,7 +190,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         } else {
             for (int i=0; i<mosqueLocationArraySize; i++) {
                 double mosqueLatitude = Double.parseDouble(mosqueLocationArray[i].getLatitude());
-                double mosqueLongitude = Double.parseDouble(mosqueLocationArray[i].getLatitude());
+                double mosqueLongitude = Double.parseDouble(mosqueLocationArray[i].getLongitude());
 
                 radDiffOfLat = Math.toRadians(mosqueLatitude - currentLatitude);
                 radDiffOfLng = Math.toRadians(mosqueLongitude - currentLongitude);
