@@ -126,8 +126,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 int i = 0;
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     mosqueLocationArray[i] = snapshot.getValue(MosqueLocation.class);
-                    Log.d("Location", "mosqueLocationArray["+i+"].getLatitude() ="+mosqueLocationArray[i].getLatitude());
-                    Log.d("Location", "mosqueLocationArray["+i+"].getLongitude() ="+mosqueLocationArray[i].getLongitude());
                     i++;
                 }
             }
