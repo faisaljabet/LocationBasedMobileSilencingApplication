@@ -15,6 +15,7 @@ import android.location.LocationManager;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.widget.Button;
 import android.provider.AlarmClock;
 import android.provider.Settings;
 import android.view.View;
@@ -46,7 +47,7 @@ public class AddMosque extends MainActivity implements OnMapReadyCallback, Googl
 
     boolean isPermissionGranted;
     GoogleMap mGoogleMap;
-    FloatingActionButton fab;
+    Button addButton;
     private FusedLocationProviderClient mLocationClient;
     private int GPS_REQUEST_CODE = 9001;
 
@@ -62,13 +63,13 @@ public class AddMosque extends MainActivity implements OnMapReadyCallback, Googl
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_mosque);
 
-        fab = findViewById(R.id.fab);
+        addButton = findViewById(R.id.addButton);
         checkMyPermission();
         initMap();
         mLocationClient = new FusedLocationProviderClient(this);
         markCurrLoc();
 
-        fab.setOnClickListener(new View.OnClickListener() {
+        addButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view){
                 setCurrLocation();

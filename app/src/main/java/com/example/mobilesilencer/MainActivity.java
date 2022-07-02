@@ -51,13 +51,6 @@ import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
-//For always running in background
-import android.content.Intent;
-import android.os.PowerManager;
-import android.net.Uri;
-import android.os.Build;
-import android.provider.Settings;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -65,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     boolean isPermissionGranted;
     GoogleMap mGoogleMap;
-    private Button addNewMosque;
+    private Button openMap;
     private FusedLocationProviderClient mLocationClient;
     private int GPS_REQUEST_CODE = 9001;
 
@@ -93,8 +86,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         mLocationClient = new FusedLocationProviderClient(this);
         readMosqueLocationsFromFirebase();
         checkAndUpdateAudioMode();
-        addNewMosque = findViewById(R.id.addNewMosque);
-        addNewMosque.setOnClickListener(new View.OnClickListener() {
+        openMap = findViewById(R.id.openMap);
+
+        openMap.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view){
                 startActivity(new Intent(MainActivity.this, AddMosque.class));
@@ -117,18 +111,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             }
         }));
         thread.start();
-
-        //For always running in background
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Intent intent = new Intent();
-            String packageName = getPackageName();
-            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                intent.setData(Uri.parse("package:" + packageName));
-                startActivity(intent);
-            }
-        }
     }
 
     private void readMosqueLocationsFromFirebase()
@@ -144,6 +126,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 int i = 0;
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     mosqueLocationArray[i] = snapshot.getValue(MosqueLocation.class);
+//                    Log.d("Location", "mosqueLocationArray["+i+"].getLatitude() ="+mosqueLocationArray[i].getLatitude());
+//                    Log.d("Location", "mosqueLocationArray["+i+"].getLongitude() ="+mosqueLocationArray[i].getLongitude());
                     i++;
                 }
             }
@@ -203,18 +187,20 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 // Radius of earth in meters. Use 3956
                 // for miles
                 double r = 6371000;
+
+                Log.d("Not insideMosque", "");
+                Log.d("currentLatitude", "" + currentLatitude);
+                Log.d("mosqueLatitude", "" + mosqueLatitude);
+                Log.d("currentLongitude", "" + currentLongitude);
+                Log.d("mosqueLongitude", "" + mosqueLongitude);
+                Log.d("Distance", "" + (c * r));
                 // calculate the result
                 if (c * r <= 10) {
                     am.setRingerMode(1);
                     insideMosque = true;
                     currMosqueLat = mosqueLatitude;
                     currMosqueLng = mosqueLongitude;
-//                            Log.d("Not insideMosque", "");
-//                            Log.d("currentLatitude", "" + currentLatitude);
-//                            Log.d("mosqueLatitude", "" + mosqueLatitude);
-//                            Log.d("currentLongitude", "" + currentLongitude);
-//                            Log.d("mosqueLongitude", "" + mosqueLongitude);
-//                            Log.d("Distance", "" + (c * r));
+
                     break;
                 }
 
