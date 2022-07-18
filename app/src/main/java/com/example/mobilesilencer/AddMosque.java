@@ -5,15 +5,18 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.loader.content.AsyncTaskLoader;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.media.AudioManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.widget.Button;
 import android.provider.AlarmClock;
@@ -21,6 +24,13 @@ import android.provider.Settings;
 import android.view.View;
 import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -41,9 +51,23 @@ import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.Map;
 
 public class AddMosque extends MainActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+
+    private String apiPath = "http://192.168.0.3/phpsamples/php-mysql-rest-api-for-android/";
+    private static final String url = "http://192.168.0.3:8080/MobileSilencer/insertion.php";
 
     boolean isPermissionGranted;
     GoogleMap mGoogleMap;
@@ -73,10 +97,94 @@ public class AddMosque extends MainActivity implements OnMapReadyCallback, Googl
             @Override
             public void onClick(View view){
                 setCurrLocation();
-                addNewMosque(currentLatitude, currentLongitude);
+                //addNewMosque(currentLatitude, currentLongitude);
+                InsertInDB();
+                ///new InsertData().execute(currentLatitude, currentLongitude);
             }
+
         });
     }
+    public void InsertInDB() {
+        StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Toast.makeText(getApplicationContext(), response, Toast.LENGTH_SHORT).show();
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Toast.makeText(getApplicationContext(), error.toString(), Toast.LENGTH_LONG).show();
+            }
+        }) {
+            @Nullable
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map <String, String> map = new HashMap<String, String>();
+                map.put("latitude", currentLatitude);
+                map.put("longitude", currentLongitude);
+                return map;
+
+            }
+        };
+
+        RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+        queue.add(request);
+    }
+
+    /*
+    class InsertData extends AsyncTask<String, Void, String>
+    {
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected String doInBackground(String... strings) {
+            try {
+                Toast.makeText(AddMosque.this, "Done", Toast.LENGTH_SHORT).show();
+                String link  = apiPath + "insertion.php";
+
+                String data = URLEncoder.encode("latitude", "UTF-8") + "=" + URLEncoder.encode(currentLatitude, "UTF-8");
+                data += "&" + URLEncoder.encode("longitude", "UTF-8") + "=" + URLEncoder.encode(currentLongitude, "UTF-8");
+
+                URL url = new URL(link);
+                URLConnection connection = url.openConnection();
+                connection.setDoOutput(true);
+
+                OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
+                writer.write(data);
+                writer.flush();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                return reader.readLine();
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+                return "Error! " + e.getMessage();
+            }
+        }
+        @Override
+        protected void onPostExecute(String s) {
+            try
+            {
+                JSONObject jsonObject = new JSONObject();
+
+                if(jsonObject.getString("response").equals("success"))
+                {
+                    Toast.makeText(AddMosque.this, "Successfully Stored in Database", Toast.LENGTH_SHORT).show();
+                }
+                else
+                {
+                    Toast.makeText(AddMosque.this, "Error", Toast.LENGTH_SHORT).show();
+                }
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
+    */
 
     private void addNewMosque(String lat, String lng){
         mosqueLocation = db.getReference().child("MosqueLocation");
