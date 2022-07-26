@@ -3,10 +3,13 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/AS Project/MobileSilencer/app/src/main/res/drawable/background_splashscreea.xml" value="0.1875" />
         <entry key="..\:/AS Project/MobileSilencer/app/src/main/res/layout/activity_add_mosque.xml" value="0.25951016154247003" />
-        <entry key="..\:/AS Project/MobileSilencer/app/src/main/res/layout/activity_main.xml" value="0.176" />
+        <entry key="..\:/AS Project/MobileSilencer/app/src/main/res/layout/activity_main.xml" value="0.136" />
         <entry key="..\:/AS Project/MobileSilencer/app/src/main/res/layout/activity_main_activity2_zx.xml" value="0.18055555555555555" />
         <entry key="..\:/AS Project/MobileSilencer/app/src/main/res/layout/activity_make_silent.xml" value="0.1" />
+        <entry key="..\:/AS Project/MobileSilencer/app/src/main/res/layout/activity_show_mosque_info.xml" value="0.259375" />
+        <entry key="..\:/AS Project/MobileSilencer/app/src/main/res/layout/singlerow.xml" value="0.12" />
         <entry key="..\:/Github/LocationBasedMobileSilencingApplication/app/src/main/res/layout/activity_add_mosque.xml" value="0.1" />
         <entry key="..\:/Github/LocationBasedMobileSilencingApplication/app/src/main/res/layout/activity_main.xml" value="0.1" />
         <entry key="..\:/Github/LocationBasedMobileSilencingApplication/app/src/main/res/layout/network_security_config.xml" value="0.1" />

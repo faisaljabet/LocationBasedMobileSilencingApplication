@@ -66,20 +66,20 @@ import java.util.Map;
 
 public class AddMosque extends MainActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
-    private String apiPath = "http://192.168.0.3/phpsamples/php-mysql-rest-api-for-android/";
-    private static final String url = "http://192.168.0.3:8080/MobileSilencer/insertion.php";
+    private static final String url = "http://10.23.174.173" +
+            ":8080/MobileSilencer/insertion.php";
 
     boolean isPermissionGranted;
     GoogleMap mGoogleMap;
     Button addButton;
     private FusedLocationProviderClient mLocationClient;
-    private int GPS_REQUEST_CODE = 9001;
+    private final int GPS_REQUEST_CODE = 9001;
 
     private String currentLatitude;
     private String currentLongitude;
 
     // Write a message to the database
-    private FirebaseDatabase db = FirebaseDatabase.getInstance();
+    private final FirebaseDatabase db = FirebaseDatabase.getInstance();
     private DatabaseReference mosqueLocation;
 
     @Override
@@ -142,7 +142,7 @@ public class AddMosque extends MainActivity implements OnMapReadyCallback, Googl
         protected String doInBackground(String... strings) {
             try {
                 Toast.makeText(AddMosque.this, "Done", Toast.LENGTH_SHORT).show();
-                String link  = apiPath + "insertion.php";
+                String link  = url + "insertion.php";
 
                 String data = URLEncoder.encode("latitude", "UTF-8") + "=" + URLEncoder.encode(currentLatitude, "UTF-8");
                 data += "&" + URLEncoder.encode("longitude", "UTF-8") + "=" + URLEncoder.encode(currentLongitude, "UTF-8");
